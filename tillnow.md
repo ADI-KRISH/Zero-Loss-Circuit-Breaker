@@ -132,6 +132,28 @@ if is_clear_fraud:
 
 ---
 
+## Phase 6: Frontend Dashboard (Streamlit)
+
+### Files Created
+- `app.py` - The main Streamlit application
+- `FRONTEND.md` - Technical documentation for the dashboard
+
+### Features Implemented
+1. **Live Simulation Page**:
+   - Visual debate with colored avatars
+   - Real-time message streaming simulation
+   - Verdict Banners (Green for Refund/Deny, Flashing Yellow for Circuit Breaker)
+   
+2. **Escalation Desk Page**:
+   - Queue management for triggered circuit breakers
+   - "Force Refund" / "Force Deny" buttons for humans
+   - Expandable details showing conflicting stats
+
+### Dependencies Added
+- `streamlit` added to `requirements.txt`
+
+---
+
 ## Summary of All Changes Made
 
 ### Import Fixes
