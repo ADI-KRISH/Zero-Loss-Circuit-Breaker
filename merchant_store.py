@@ -1,9 +1,9 @@
 """
-Zero-Loss Circuit Breaker: Merchant Store
-==========================================
+Sentinel: Merchant Store (Sneaker Vault)
+=========================================
 
-A mock e-commerce store that demonstrates the payment flow.
-Sends transactions to the API and displays the verdict.
+Mock e-commerce store demonstrating payment flow.
+Hidden dev tools allow bank error injection.
 
 HOW TO RUN THE COMPLETE SYSTEM:
 ================================
@@ -23,57 +23,70 @@ from datetime import datetime
 # ============================================================================
 
 st.set_page_config(
-    page_title="SneakerVault Store",
+    page_title="SneakerVault",
     page_icon="👟",
     layout="centered"
 )
 
-# Styling
+# Premium store styling
 st.markdown("""
 <style>
     .stApp { 
-        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); 
+        background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%); 
+    }
+    .store-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+        margin-bottom: 20px;
     }
     .product-card {
-        background: linear-gradient(135deg, #2a2a4a 0%, #1e1e3f 100%);
+        background: linear-gradient(135deg, #1e1e3f 0%, #2a2a4a 100%);
         padding: 30px;
         border-radius: 20px;
         border: 1px solid #3a3a5a;
         text-align: center;
     }
     .price-tag {
-        font-size: 36px;
+        font-size: 42px;
         font-weight: bold;
-        color: #00d4ff;
+        background: linear-gradient(135deg, #00d4ff, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
     .result-success {
-        background: linear-gradient(90deg, #28a745, #20c997);
+        background: linear-gradient(135deg, #28a745, #20c997);
         color: white;
-        padding: 25px;
+        padding: 30px;
         border-radius: 15px;
         text-align: center;
-        font-size: 22px;
+        font-size: 24px;
     }
     .result-review {
-        background: linear-gradient(90deg, #ffc107, #fd7e14);
+        background: linear-gradient(135deg, #ffc107, #fd7e14);
         color: black;
-        padding: 25px;
+        padding: 30px;
         border-radius: 15px;
         text-align: center;
-        font-size: 22px;
+        font-size: 24px;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+        50% { box-shadow: 0 0 20px 10px rgba(255, 193, 7, 0.3); }
     }
     .result-declined {
-        background: linear-gradient(90deg, #dc3545, #c82333);
+        background: linear-gradient(135deg, #dc3545, #c82333);
         color: white;
-        padding: 25px;
+        padding: 30px;
         border-radius: 15px;
         text-align: center;
-        font-size: 22px;
+        font-size: 24px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# API URL
 API_URL = "http://127.0.0.1:8000"
 
 
@@ -88,100 +101,131 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = f"cust_{random.randint(10000, 99999)}"
 
 if "user_trust" not in st.session_state:
-    st.session_state.user_trust = round(random.uniform(0.6, 0.95), 2)
+    st.session_state.user_trust = round(random.uniform(0.75, 0.95), 2)
 
 
 # ============================================================================
 # MAIN STORE UI
 # ============================================================================
 
-st.title("👟 SneakerVault")
-st.caption("Premium Footwear | Powered by Zero-Loss Payment Security")
+# Header
+st.markdown("""
+<div class="store-header">
+    <h1 style="margin: 0; color: white;">👟 SneakerVault</h1>
+    <p style="margin: 5px 0 0 0; color: rgba(255,255,255,0.8);">Premium Footwear | Secured by Sentinel AI</p>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
-
-# Product Card
+# Product Display
 col1, col2 = st.columns([1, 1])
 
 with col1:
     st.markdown("""
     <div class="product-card">
-        <h2>🔥 Air Jordan 1 Retro</h2>
-        <p style="color: #888;">Limited Edition | Size 10</p>
-        <p class="price-tag">$199.99</p>
-        <p style="color: #666; font-size: 12px;">Free Shipping | 30-Day Returns</p>
+        <h2 style="color: white; margin-top: 0;">🔥 Air Jordan 1 Retro High</h2>
+        <p style="color: #888;">Limited Edition | Travis Scott Collab</p>
+        <p style="color: #666;">Size: 10 | Condition: DS (Deadstock)</p>
+        <p class="price-tag">$4,999</p>
+        <p style="color: #666; font-size: 12px; margin-top: 15px;">
+            ✓ Authenticity Verified<br>
+            ✓ Free Express Shipping<br>
+            ✓ 30-Day Returns
+        </p>
     </div>
     """, unsafe_allow_html=True)
 
 with col2:
-    st.subheader("🛒 Checkout")
+    st.markdown("### 🛒 Secure Checkout")
     
-    # Customer info (read-only for demo)
-    st.text_input("Customer ID", value=st.session_state.user_id, disabled=True)
-    st.text_input("Trust Score", value=f"{st.session_state.user_trust:.0%}", disabled=True)
+    # Customer Info (simulated)
+    st.text_input("👤 Customer ID", value=st.session_state.user_id, disabled=True)
+    st.text_input("⭐ Trust Score", value=f"{st.session_state.user_trust:.0%}", disabled=True)
     
-    # Hidden dev tools
-    with st.expander("🔧 Developer Tools (Simulate Bank Errors)"):
-        bank_status = st.selectbox(
-            "Simulate Bank Response:",
+    # Card info (fake)
+    st.text_input("💳 Card Number", value="•••• •••• •••• 4242", disabled=True)
+    
+    # Hidden Dev Tools
+    st.markdown("---")
+    with st.expander("🔧 **Developer Tools** (Force Bank Error)", expanded=False):
+        st.caption("Simulate different bank responses for demo purposes")
+        
+        bank_response = st.selectbox(
+            "Bank Response Override:",
             [
                 "✅ SUCCESS_200 (Payment OK)",
-                "⚠️ TIMEOUT_504 (Network Hang)",
+                "⚠️ TIMEOUT_504 (Network Hang - The Trap!)",
                 "❌ FAILED_402 (Card Declined)"
-            ]
+            ],
+            index=0
         )
         
         # Parse status
-        if "200" in bank_status:
+        if "200" in bank_response:
             network_status = "SUCCESS_200"
-        elif "504" in bank_status:
+        elif "504" in bank_response:
             network_status = "TIMEOUT_504"
-            st.warning("⚠️ This will trigger the Circuit Breaker!")
+            st.error("⚠️ This will trigger the Circuit Breaker!")
         else:
             network_status = "FAILED_402"
         
         # Override trust
-        custom_trust = st.slider("Override Trust Score", 0.0, 1.0, st.session_state.user_trust, 0.05)
+        override_trust = st.slider(
+            "Override Trust Score:",
+            min_value=0.0,
+            max_value=1.0,
+            value=st.session_state.user_trust,
+            step=0.05
+        )
     
     st.markdown("---")
     
-    # Pay button
-    if st.button("💳 PAY $199.99", type="primary", use_container_width=True):
+    # Pay Button
+    if st.button("💳 PAY $4,999", type="primary", use_container_width=True):
         st.session_state.order_result = None
         
-        # Generate transaction ID
-        tx_id = f"tx_{datetime.now().strftime('%H%M%S')}_{random.randint(100, 999)}"
+        # Generate TX ID
+        tx_id = f"TX-{datetime.now().strftime('%H%M%S')}-{random.randint(100, 999)}"
         
         # Prepare payload
         payload = {
             "transaction_id": tx_id,
-            "amount": 199.99,
+            "amount": 4999.00,
             "user_id": st.session_state.user_id,
-            "user_trust": custom_trust if 'custom_trust' in dir() else st.session_state.user_trust,
+            "user_trust": override_trust if 'override_trust' in dir() else st.session_state.user_trust,
             "status": network_status if 'network_status' in dir() else "SUCCESS_200"
         }
         
         # Show processing
-        with st.spinner("Processing payment..."):
+        with st.spinner("🔄 Processing payment through Sentinel..."):
+            # Simulate network delay for timeout scenario
             if "504" in (network_status if 'network_status' in dir() else ""):
-                time.sleep(2)  # Simulate timeout
+                time.sleep(2.5)
             else:
-                time.sleep(1)
+                time.sleep(1.2)
             
             try:
-                response = requests.post(f"{API_URL}/webhook", json=payload, timeout=10)
+                response = requests.post(f"{API_URL}/webhook", json=payload, timeout=15)
                 
                 if response.status_code == 200:
                     st.session_state.order_result = response.json()
                 else:
-                    st.session_state.order_result = {"verdict": "ERROR", "reason": f"API Error: {response.status_code}"}
+                    st.session_state.order_result = {
+                        "verdict": "ERROR",
+                        "reason": f"API returned status {response.status_code}"
+                    }
             
             except requests.exceptions.ConnectionError:
-                st.session_state.order_result = {"verdict": "ERROR", "reason": "Cannot connect to API. Is it running?"}
+                st.session_state.order_result = {
+                    "verdict": "ERROR",
+                    "reason": "Cannot connect to Sentinel API. Is it running?"
+                }
             except Exception as e:
-                st.session_state.order_result = {"verdict": "ERROR", "reason": str(e)}
+                st.session_state.order_result = {
+                    "verdict": "ERROR",
+                    "reason": str(e)
+                }
 
-# Display result
+# Display Result
 if st.session_state.order_result:
     st.markdown("---")
     result = st.session_state.order_result
@@ -191,20 +235,28 @@ if st.session_state.order_result:
         st.markdown("""
         <div class="result-success">
             ✅ Order Confirmed!<br>
-            <span style="font-size: 16px;">Your Air Jordan 1 Retro is on its way!</span>
+            <span style="font-size: 16px;">Your Air Jordan 1 Retro is on its way! 🎉</span>
         </div>
         """, unsafe_allow_html=True)
         st.balloons()
+        st.success(f"**Transaction ID:** {result.get('transaction_id', 'N/A')}")
     
     elif verdict == "ESCALATE":
         st.markdown("""
         <div class="result-review">
-            ⚠️ Payment Under Review<br>
-            <span style="font-size: 16px;">Safety Check in Progress - Please wait...</span>
+            ⚠️ Payment Under Safety Review<br>
+            <span style="font-size: 16px;">Our AI detected something unusual. Please wait...</span>
         </div>
         """, unsafe_allow_html=True)
-        st.info(f"**Reason:** {result.get('reason', 'Transaction flagged for manual review')}")
-        st.warning("Your payment is being reviewed by our safety team. You'll receive an email within 24 hours.")
+        
+        st.warning(f"**Transaction ID:** {result.get('transaction_id', 'N/A')}")
+        st.info(f"**Reason:** {result.get('reason', 'Circuit Breaker activated')}")
+        
+        st.markdown("""
+        > 📧 You'll receive an email within 1 hour with the review result.
+        > 
+        > 🛡️ This safety check protects both you and us from fraud.
+        """)
     
     elif verdict == "DENY":
         st.markdown("""
@@ -213,43 +265,54 @@ if st.session_state.order_result:
             <span style="font-size: 16px;">Please try a different payment method</span>
         </div>
         """, unsafe_allow_html=True)
-        st.error(f"**Reason:** {result.get('reason', 'Your bank declined the transaction')}")
+        
+        st.error(f"**Reason:** {result.get('reason', 'Bank declined the transaction')}")
     
     else:
-        st.error(f"⚠️ Error: {result.get('reason', 'Unknown error')}")
+        st.error(f"⚠️ System Error: {result.get('reason', 'Unknown error')}")
         st.code("""
-# Make sure the API is running:
+# Make sure the Sentinel API is running:
 uvicorn api:app --reload
         """)
+    
+    # Reset button
+    if st.button("🔄 New Order"):
+        st.session_state.order_result = None
+        st.session_state.user_id = f"cust_{random.randint(10000, 99999)}"
+        st.session_state.user_trust = round(random.uniform(0.75, 0.95), 2)
+        st.rerun()
 
 # Footer
 st.markdown("---")
 st.markdown("""
-<div style="text-align: center; color: #666; font-size: 12px;">
-    <p>🛡️ Protected by Zero-Loss Circuit Breaker</p>
-    <p>Demo Store for Hackathon | No real transactions</p>
+<div style="text-align: center; color: #555; font-size: 12px;">
+    <p>🛡️ Payments secured by <b>Sentinel</b> - Multi-Agent AI Protection</p>
+    <p>Demo Store for EpochOn 2.0 Hackathon | No real transactions</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Instructions
-with st.expander("📖 Demo Instructions"):
+# Demo Instructions
+with st.expander("📖 **Demo Instructions**"):
     st.markdown("""
-    ### How to Demo
+    ### Normal Flow
+    1. Click **PAY $4,999** → ✅ Order Confirmed
     
-    1. **Normal Purchase**: Leave bank status as "SUCCESS_200" → Click Pay → ✅ Order Confirmed
+    ### The Trap (Show Circuit Breaker)
+    1. Open **Developer Tools**
+    2. Set Bank Response to **TIMEOUT_504**
+    3. Click **PAY $4,999**
+    4. ⚠️ **Payment Under Review** (Circuit Breaker caught it!)
     
-    2. **The Trap** (Show Circuit Breaker):
-       - Open Developer Tools
-       - Set bank status to "TIMEOUT_504"
-       - Click Pay
-       - ⚠️ **Payment Under Review** (Circuit Breaker caught it!)
-    
-    3. **Check Dashboard**: 
-       - Open `http://localhost:8501` (dashboard.py)
-       - See the escalated transaction in real-time
+    ### Check Dashboard
+    1. Open `http://localhost:8501`
+    2. Go to **Tab 2: Live Escalation Desk**
+    3. Click on the escalated transaction
+    4. Show **Internal Monologue** to judges
     
     ### The Pitch
-    > "Even though the customer is a VIP with 90% trust, our system
-    > detected the network ambiguity and stopped the payment to prevent
-    > a potential $200 double-spend."
+    > *"The customer is a VIP with 90% trust. Traditional automation would approve instantly.*
+    > 
+    > *But our AI saw the 504 timeout, THOUGHT about the risk, and triggered the Circuit Breaker.*
+    > 
+    > *That's $5,000 saved from a potential double-spend."*
     """)

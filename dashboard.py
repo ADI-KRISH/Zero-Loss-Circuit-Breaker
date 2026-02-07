@@ -1,10 +1,10 @@
 """
-Zero-Loss Circuit Breaker: Ops Dashboard
-=========================================
+Sentinel: Ops Dashboard
+========================
 
-A Streamlit dashboard for the Safety Team with:
-- Tab 1: Simulation Gym (test the Brain directly)
-- Tab 2: Live Escalation Desk (monitor API traffic)
+Two-tab dashboard for the Safety Team:
+- Tab 1: Simulation Gym with Internal Monologue viewer
+- Tab 2: Live Escalation Desk with transaction inspector
 
 HOW TO RUN THE COMPLETE SYSTEM:
 ================================
@@ -18,6 +18,7 @@ import pandas as pd
 import json
 import os
 import time
+import random
 from datetime import datetime
 
 from core_logic import TribunalBrain
@@ -27,65 +28,147 @@ from core_logic import TribunalBrain
 # ============================================================================
 
 st.set_page_config(
-    page_title="Zero-Loss Dashboard",
+    page_title="Sentinel Dashboard",
     page_icon="🛡️",
     layout="wide"
 )
 
-# Styling
+# Premium styling
 st.markdown("""
 <style>
-    .stApp { background: linear-gradient(180deg, #0e1117 0%, #1a1a2e 100%); }
-    .verdict-approve { background: #28a745; color: white; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; }
-    .verdict-deny { background: #dc3545; color: white; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; }
-    .verdict-escalate { background: #ffc107; color: black; padding: 20px; border-radius: 10px; text-align: center; font-size: 24px; font-weight: bold; }
+    .stApp { background: linear-gradient(180deg, #0a0a1a 0%, #1a1a2e 100%); }
+    
+    .verdict-approve { 
+        background: linear-gradient(135deg, #28a745, #20c997); 
+        color: white; padding: 25px; border-radius: 15px; 
+        text-align: center; font-size: 28px; font-weight: bold; 
+    }
+    .verdict-deny { 
+        background: linear-gradient(135deg, #dc3545, #c82333); 
+        color: white; padding: 25px; border-radius: 15px; 
+        text-align: center; font-size: 28px; font-weight: bold; 
+    }
+    .verdict-escalate { 
+        background: linear-gradient(135deg, #ffc107, #fd7e14); 
+        color: black; padding: 25px; border-radius: 15px; 
+        text-align: center; font-size: 28px; font-weight: bold;
+        animation: flash 1s infinite;
+    }
+    @keyframes flash {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .thought-box {
+        background: #1e1e3f;
+        border-left: 4px solid #6c757d;
+        padding: 10px 15px;
+        margin: 5px 0;
+        border-radius: 0 8px 8px 0;
+        font-style: italic;
+        color: #aaa;
+    }
+    .system-box {
+        background: #0d1117;
+        border-left: 4px solid #58a6ff;
+        padding: 10px 15px;
+        margin: 5px 0;
+        border-radius: 0 8px 8px 0;
+        color: #58a6ff;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Database file (shared with api.py)
 DB_FILE = "transactions_db.json"
 
 
 # ============================================================================
-# SESSION STATE
+# HELPER: Display Logs
 # ============================================================================
 
-if "sim_history" not in st.session_state:
-    st.session_state.sim_history = []
+def parse_log(log):
+    """Parse log entry - handles both dict and string formats."""
+    if isinstance(log, dict):
+        return log
+    elif isinstance(log, str):
+        # Old format: "[TYPE] Agent: message"
+        return {"type": "SPEAK", "agent": "System", "message": log}
+    return {"type": "UNKNOWN", "agent": "Unknown", "message": str(log)}
+
+
+def display_logs(logs: list, show_thoughts: bool = True):
+    """Display logs with proper formatting."""
+    for raw_log in logs:
+        log = parse_log(raw_log)
+        log_type = log.get("type", "")
+        agent = log.get("agent", "")
+        message = log.get("message", "")
+        
+        if log_type == "SYSTEM":
+            st.markdown(f'<div class="system-box">🔧 <b>SYSTEM</b>: {message}</div>', unsafe_allow_html=True)
+        
+        elif log_type == "THOUGHT":
+            if show_thoughts:
+                st.markdown(f'<div class="thought-box">💭 <b>{agent}</b> (thinking): {message}</div>', unsafe_allow_html=True)
+        
+        elif log_type == "SPEAK":
+            if agent == "Advocate":
+                with st.chat_message("Advocate", avatar="🧑‍💼"):
+                    st.markdown(message)
+            elif agent == "Risk Officer":
+                with st.chat_message("Risk Officer", avatar="👮"):
+                    st.markdown(message)
+            else:
+                st.write(message)
+        
+        elif log_type == "JUDGE":
+            with st.chat_message("Judge", avatar="⚖️"):
+                st.markdown(f"*{message}*")
+        
+        elif log_type == "VERDICT":
+            with st.chat_message("Judge", avatar="⚖️"):
+                st.markdown(f"**{message}**")
+        
+        else:
+            # Unknown format - just display
+            st.write(message)
 
 
 # ============================================================================
 # MAIN
 # ============================================================================
 
-st.title("🛡️ Zero-Loss Circuit Breaker: Ops Dashboard")
-st.caption("Safety Team Console | Powered by TribunalBrain")
+st.title("🛡️ Sentinel: Multi-Agent Tribunal Dashboard")
+st.caption("Transparent AI Decision-Making | Every thought is logged")
 
 tab1, tab2 = st.tabs(["🧪 Simulation Gym", "📊 Live Escalation Desk"])
 
 
 # ============================================================================
-# TAB 1: SIMULATION GYM (Direct Brain Testing)
+# TAB 1: SIMULATION GYM
 # ============================================================================
 
 with tab1:
-    st.header("🧪 Simulation Gym")
-    st.caption("Test the TribunalBrain directly without hitting the API")
+    st.header("🧪 Simulation Gym (God Mode)")
+    st.caption("Test the TribunalBrain directly - see internal thoughts and public debate")
     
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.subheader("💳 Inject Transaction")
+        st.subheader("💳 Transaction Parameters")
         
-        amount = st.number_input("Amount ($)", min_value=1.0, value=199.99, step=10.0)
+        tx_id = f"SIM-{random.randint(1000, 9999)}"
+        st.text_input("Transaction ID", value=tx_id, disabled=True)
+        
+        amount = st.number_input("Amount ($)", min_value=1.0, value=4999.00, step=100.0)
         
         trust = st.slider(
             "User Trust Score",
             min_value=0.0,
             max_value=1.0,
-            value=0.85,
+            value=0.90,
             step=0.05,
-            help="0 = Fraudster, 1.0 = VIP"
+            help="0.0 = Flagged Fraudster | 1.0 = VIP Customer"
         )
         
         # Trust indicator
@@ -94,103 +177,88 @@ with tab1:
         elif trust >= 0.5:
             st.info(f"👤 Regular Customer ({trust:.0%})")
         else:
-            st.warning(f"🚨 Risky Customer ({trust:.0%})")
+            st.error(f"🚨 Flagged User ({trust:.0%})")
         
-        network_status = st.selectbox(
-            "Network Fault Injection",
+        st.markdown("---")
+        
+        network = st.selectbox(
+            "🌐 Network State (Inject Fault)",
             [
-                "SUCCESS_200 (Clean)",
-                "TIMEOUT_504 (The Trap!)",
-                "FAILED_402 (Declined)"
+                "✅ SUCCESS_200 (Payment Confirmed)",
+                "⚠️ TIMEOUT_504 (The Trap!)",
+                "❌ FAILED_402 (Bank Declined)"
             ]
         )
         
-        # Extract status code
-        if "200" in network_status:
+        # Parse status
+        if "200" in network:
             status = "SUCCESS_200"
-        elif "504" in network_status:
+        elif "504" in network:
             status = "TIMEOUT_504"
+            st.error("⚠️ **TRAP MODE ACTIVE**: This triggers Circuit Breaker!")
         else:
             status = "FAILED_402"
         
-        if "504" in network_status:
-            st.error("⚠️ **TRAP MODE**: This simulates an ambiguous network state!")
+        st.markdown("---")
         
-        inject_btn = st.button("🚀 INJECT TRANSACTION", type="primary", use_container_width=True)
+        run_btn = st.button("🚀 RUN TRIBUNAL", type="primary", use_container_width=True)
     
     with col2:
-        st.subheader("🏛️ Tribunal Response")
+        st.subheader("🏛️ Tribunal Deliberation")
         
-        if inject_btn:
-            # Run through brain
-            with st.spinner("Analyzing transaction..."):
+        if run_btn:
+            with st.spinner("Activating Multi-Agent Tribunal..."):
                 time.sleep(0.5)
-                result = TribunalBrain.analyze(amount, trust, status)
+                result = TribunalBrain.analyze(tx_id, amount, trust, status)
             
-            # Display agent chat logs
-            st.markdown("#### 🗣️ Agent Debate")
-            for log in result["logs"]:
-                if "Advocate" in log:
-                    with st.chat_message("Advocate", avatar="🧑‍💼"):
-                        st.markdown(log.replace("🧑‍💼 **Advocate**: ", ""))
-                elif "Risk Officer" in log:
-                    with st.chat_message("Risk Officer", avatar="👮"):
-                        st.markdown(log.replace("👮 **Risk Officer**: ", ""))
-                else:
-                    with st.chat_message("Judge", avatar="⚖️"):
-                        st.markdown(log.replace("⚖️ **Judge**: ", ""))
-                time.sleep(0.3)
-            
-            # Verdict banner
-            st.markdown("---")
+            # Verdict Banner
             verdict = result["verdict"]
             if verdict == "APPROVE":
-                st.markdown(f'<div class="verdict-approve">✅ {verdict}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="verdict-approve">✅ APPROVED</div>', unsafe_allow_html=True)
             elif verdict == "DENY":
-                st.markdown(f'<div class="verdict-deny">❌ {verdict}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="verdict-deny">❌ DENIED</div>', unsafe_allow_html=True)
             else:
-                st.markdown(f'<div class="verdict-escalate">🔒 {verdict} - CIRCUIT BREAKER</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="verdict-escalate">🔒 ESCALATED - CIRCUIT BREAKER</div>', unsafe_allow_html=True)
             
             st.info(f"**Reason:** {result['reason']}")
             
-            # Add to history
-            st.session_state.sim_history.append({
-                "time": datetime.now().strftime("%H:%M:%S"),
-                "amount": f"${amount:,.2f}",
-                "trust": f"{trust:.0%}",
-                "status": status,
-                "verdict": verdict
-            })
-        else:
-            st.info("👆 Configure a transaction and click **INJECT** to test the Brain")
-    
-    # Simulation history
-    if st.session_state.sim_history:
-        st.markdown("---")
-        st.subheader("📜 Simulation History")
-        df = pd.DataFrame(st.session_state.sim_history)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+            # Metrics
+            m1, m2, m3 = st.columns(3)
+            m1.metric("Advocate", result["advocate_vote"])
+            m2.metric("Risk Officer", result["risk_vote"])
+            m3.metric("Risk Score", f"{result['risk_score']:.0f}%")
+            
+            st.markdown("---")
+            
+            # Internal Monologue (The "Wow" Factor)
+            with st.expander("🧠 **Show Internal Monologue** (Agent Thoughts)", expanded=True):
+                st.caption("These are the private thoughts of each agent - not visible to other agents during debate")
+                thoughts = [l for l in result["logs"] if l["type"] == "THOUGHT"]
+                for t in thoughts:
+                    st.markdown(f'<div class="thought-box">💭 <b>{t["agent"]}</b>: {t["message"]}</div>', unsafe_allow_html=True)
+            
+            # Full Debate (Public Statements)
+            st.subheader("🗣️ Public Debate")
+            display_logs(result["logs"], show_thoughts=False)
         
-        if st.button("🗑️ Clear History"):
-            st.session_state.sim_history = []
-            st.rerun()
+        else:
+            st.info("👈 Configure parameters and click **RUN TRIBUNAL** to see the agents debate")
 
 
 # ============================================================================
-# TAB 2: LIVE ESCALATION DESK (Monitor API Traffic)
+# TAB 2: LIVE ESCALATION DESK
 # ============================================================================
 
 with tab2:
     st.header("📊 Live Escalation Desk")
     st.caption("Monitor real-time API traffic from the Merchant Store")
     
-    # Refresh button
-    col1, col2, col3 = st.columns([2, 1, 1])
-    with col3:
-        if st.button("🔄 Refresh Feed", use_container_width=True):
+    col1, col2 = st.columns([3, 1])
+    with col2:
+        if st.button("🔄 Refresh", use_container_width=True):
             st.rerun()
     
-    # Load transactions from database
+    # Load database
     transactions = []
     if os.path.exists(DB_FILE):
         try:
@@ -207,7 +275,7 @@ with tab2:
         approved = sum(1 for t in transactions if t.get("verdict") == "APPROVE")
         denied = sum(1 for t in transactions if t.get("verdict") == "DENY")
         escalated = sum(1 for t in transactions if t.get("verdict") == "ESCALATE")
-        money_saved = sum(t.get("amount", 0) for t in transactions if t.get("verdict") in ["ESCALATE", "DENY"])
+        money_saved = sum(t.get("amount", 0) for t in transactions if t.get("circuit_breaker", False))
         
         m1.metric("Total Transactions", total)
         m2.metric("✅ Approved", approved)
@@ -216,8 +284,8 @@ with tab2:
         
         st.markdown("---")
         
-        # Transaction table
-        st.subheader("📋 Transaction Feed")
+        # Transaction Table
+        st.subheader("📋 Recent Transactions")
         
         display_data = [{
             "Time": t.get("timestamp", "")[:19],
@@ -226,45 +294,65 @@ with tab2:
             "Amount": f"${t.get('amount', 0):,.2f}",
             "Trust": f"{t.get('user_trust', 0):.0%}",
             "Network": t.get("network_status", ""),
-            "Verdict": t.get("verdict", ""),
-            "Risk": f"{t.get('risk_score', 0):.0f}%"
+            "Advocate": t.get("advocate_vote", ""),
+            "Risk": t.get("risk_vote", ""),
+            "Verdict": t.get("verdict", "")
         } for t in reversed(transactions)]
         
         df = pd.DataFrame(display_data)
         
-        # Highlight escalated rows
         def highlight_verdict(row):
-            if row["Verdict"] == "ESCALATE":
+            v = row["Verdict"]
+            if v == "ESCALATE":
                 return ["background-color: #ffc107; color: black"] * len(row)
-            elif row["Verdict"] == "DENY":
+            elif v == "DENY":
                 return ["background-color: #dc3545; color: white"] * len(row)
-            elif row["Verdict"] == "APPROVE":
+            elif v == "APPROVE":
                 return ["background-color: #28a745; color: white"] * len(row)
             return [""] * len(row)
         
         styled_df = df.style.apply(highlight_verdict, axis=1)
         st.dataframe(styled_df, use_container_width=True, hide_index=True)
         
-        # Escalation details
-        escalated_txs = [t for t in transactions if t.get("verdict") == "ESCALATE"]
-        if escalated_txs:
-            st.markdown("---")
-            st.subheader("🚨 Escalated Transactions (Pending Human Review)")
-            
-            for tx in reversed(escalated_txs[-5:]):
-                with st.expander(f"🔒 {tx.get('transaction_id')} - ${tx.get('amount', 0):,.2f}"):
-                    col_a, col_b = st.columns(2)
-                    with col_a:
-                        st.write(f"**User:** {tx.get('user_id')}")
-                        st.write(f"**Trust:** {tx.get('user_trust', 0):.0%}")
-                        st.write(f"**Network:** `{tx.get('network_status')}`")
-                    with col_b:
-                        st.write(f"**Risk Score:** {tx.get('risk_score', 0):.0f}%")
-                        st.write(f"**Reason:** {tx.get('reason')}")
-                    
-                    st.markdown("**Agent Logs:**")
-                    for log in tx.get("logs", []):
-                        st.write(log)
+        # Transaction Inspector
+        st.markdown("---")
+        st.subheader("🔍 Transaction Inspector")
+        
+        tx_ids = [t.get("transaction_id") for t in reversed(transactions)]
+        selected_tx = st.selectbox("Select Transaction to Inspect", tx_ids)
+        
+        if selected_tx:
+            tx = next((t for t in transactions if t.get("transaction_id") == selected_tx), None)
+            if tx:
+                col_a, col_b = st.columns(2)
+                
+                with col_a:
+                    st.markdown("**Transaction Details:**")
+                    st.write(f"- Amount: `${tx.get('amount', 0):,.2f}`")
+                    st.write(f"- User: `{tx.get('user_id')}`")
+                    st.write(f"- Trust: `{tx.get('user_trust', 0):.0%}`")
+                    st.write(f"- Network: `{tx.get('network_status')}`")
+                
+                with col_b:
+                    st.markdown("**Verdict:**")
+                    st.write(f"- Decision: **{tx.get('verdict')}**")
+                    st.write(f"- Risk Score: `{tx.get('risk_score', 0):.0f}%`")
+                    st.write(f"- Circuit Breaker: `{tx.get('circuit_breaker')}`")
+                    st.write(f"- Reason: {tx.get('reason')}")
+                
+                st.markdown("---")
+                
+                with st.expander("🧠 **Internal Monologue**", expanded=False):
+                    raw_logs = tx.get("logs", [])
+                    thoughts = [parse_log(l) for l in raw_logs if parse_log(l).get("type") == "THOUGHT"]
+                    if thoughts:
+                        for t in thoughts:
+                            st.markdown(f'<div class="thought-box">💭 <b>{t.get("agent", "Agent")}</b>: {t.get("message", "")}</div>', unsafe_allow_html=True)
+                    else:
+                        st.info("No internal thoughts recorded for this transaction (old format).")
+                
+                st.markdown("**Full Debate Log:**")
+                display_logs(tx.get("logs", []), show_thoughts=False)
         
         # Clear button
         st.markdown("---")
@@ -275,11 +363,42 @@ with tab2:
             st.rerun()
     
     else:
-        st.info("📭 No transactions yet. Run the Merchant Store to generate traffic!")
+        st.info("📭 No transactions yet. Start the Merchant Store to generate traffic!")
         st.code("""
-# Start the API in Terminal 1:
+# Start the API:
 uvicorn api:app --reload
 
-# Start the Merchant Store in Terminal 3:
+# Start the Merchant Store:
 streamlit run merchant_store.py --server.port 8502
         """)
+
+
+# ============================================================================
+# DEMO GUIDE
+# ============================================================================
+
+with st.expander("💡 **How to Present to Judges**"):
+    st.markdown("""
+    ### The Demo Flow
+    
+    1. **Open Tab 1 (Simulation Gym)**
+    2. Set Trust to **0.90** (VIP) and Network to **TIMEOUT_504**
+    3. Click **RUN TRIBUNAL**
+    4. **Expand "Internal Monologue"**
+    
+    ### The Pitch
+    
+    > *"Standard AI is a black box. Our system is transparent.*
+    > 
+    > *Look here—you can see Agent B THINKING about the risk before it even speaks.*
+    > 
+    > *You can see the exact moment the logic switched from 'Trust User' to 'Protect Asset'.*
+    > 
+    > *This is the Visible Disagreement that prevents financial loss."*
+    
+    ### What to Highlight
+    
+    - **THOUGHT logs**: Show agents reasoning privately
+    - **SPEAK logs**: Show public debate
+    - **Circuit Breaker**: Yellow banner = money saved
+    """)

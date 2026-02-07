@@ -1,88 +1,84 @@
 """
-Simple test script to verify the tribunal system works.
+Sentinel: Test Suite
+====================
+
+Verifies the logic of the Multi-Agent Tribunal.
+Tests the 3 core scenarios:
+1. Happy Path (VIP User + Success) -> APPROVE
+2. Fraud Attack (Low Trust + Failure) -> DENY
+3. Timeout Trap (VIP User + Timeout) -> ESCALATE (Circuit Breaker)
 """
+
 import sys
 import os
+from dotenv import load_dotenv
+
+# Ensure we can import from root
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from dotenv import load_dotenv
+from core_logic import TribunalBrain
+
+# Load environment variables
 load_dotenv()
 
-from models.schemas import Decision
-from mock_data.scenarios import (
-    get_happy_path_scenario,
-    get_adversarial_scenario,
-    get_circuit_breaker_scenario
-)
-from core.graph import run_tribunal
-
-
-def test_scenario(name: str, signal_fn):
-    """Test a single scenario."""
+def run_test(name, inputs, expected_verdict):
     print(f"\n{'='*60}")
-    print(f"TESTING: {name}")
+    print(f"TEST: {name}")
+    print(f"INPUTS: {inputs}")
     print(f"{'='*60}")
     
-    signal = signal_fn()
-    print(f"Input: Bank={signal.bank_status.value}, Ledger={signal.ledger_status.value}")
-    
     try:
-        result = run_tribunal(signal)
-        verdict = result.get("verdict")
+        result = TribunalBrain.analyze(
+            transaction_id="TEST-TX",
+            amount=inputs["amount"],
+            user_trust=inputs["user_trust"],
+            network_status=inputs["network_status"]
+        )
         
-        if verdict:
-            print(f"Decision: {verdict.decision.value}")
-            print(f"Confidence: {verdict.confidence:.1f}%")
-            print(f"Circuit Breaker: {verdict.circuit_breaker_triggered}")
-            print(f"Reasoning: {verdict.reasoning[:100]}...")
-            if verdict.escalation_reason:
-                print(f"Escalation: {verdict.escalation_reason}")
-            return verdict
+        verdict = result["verdict"]
+        reason = result["reason"]
+        
+        print(f"VERDICT: {verdict}")
+        print(f"REASON: {reason}")
+        
+        if verdict == expected_verdict:
+            print(f"✅ PASS: Got {verdict}")
+            return True
         else:
-            print("ERROR: No verdict returned")
-            return None
+            print(f"❌ FAIL: Expected {expected_verdict}, Got {verdict}")
+            return False
+            
     except Exception as e:
-        print(f"ERROR: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
-
+        print(f"❌ ERROR: {e}")
+        return False
 
 if __name__ == "__main__":
-    print("ZERO-LOSS CIRCUIT BREAKER - Test Suite")
-    print("="*60)
+    print("\n🛡️ RUNNING SENTINEL TEST SUITE\n")
     
-    # Test 1: Happy Path - Should REFUND
-    v1 = test_scenario("Happy Path (Expected: REFUND)", get_happy_path_scenario)
+    # Test 1: Happy Path
+    t1 = run_test(
+        "Happy Path (VIP Customer)",
+        {"amount": 5000, "user_trust": 0.9, "network_status": "SUCCESS_200"},
+        "APPROVE"
+    )
     
-    # Test 2: Adversarial - Should DENY
-    v2 = test_scenario("Adversarial (Expected: DENY)", get_adversarial_scenario)
+    # Test 2: Simple Fraud
+    t2 = run_test(
+        "Simple Fraud (Low Trust + Bad Bank Reg)",
+        {"amount": 5000, "user_trust": 0.1, "network_status": "FAILED_402"},
+        "DENY"
+    )
     
-    # Test 3: Circuit Breaker - Should ESCALATE
-    v3 = test_scenario("Circuit Breaker (Expected: ESCALATE)", get_circuit_breaker_scenario)
+    # Test 3: The Timeout Trap (Circuit Breaker)
+    t3 = run_test(
+        "The Timeout Trap (Ambiguous State)",
+        {"amount": 5000, "user_trust": 0.9, "network_status": "TIMEOUT_504"},
+        "ESCALATE"
+    )
     
     print("\n" + "="*60)
-    print("TEST SUMMARY")
-    print("="*60)
-    
-    results = [
-        ("Happy Path", v1, Decision.REFUND),
-        ("Adversarial", v2, Decision.DENY),
-        ("Circuit Breaker", v3, Decision.ESCALATE)
-    ]
-    
-    all_passed = True
-    for name, verdict, expected in results:
-        if verdict and verdict.decision == expected:
-            print(f"✅ {name}: PASS ({verdict.decision.value} == {expected.value})")
-        elif verdict:
-            print(f"⚠️  {name}: PARTIAL ({verdict.decision.value} != {expected.value})")
-            all_passed = False
-        else:
-            print(f"❌ {name}: FAIL (No verdict)")
-            all_passed = False
-    
-    if all_passed:
-        print("\n🎉 ALL TESTS PASSED!")
+    if t1 and t2 and t3:
+        print("🎉 ALL SYSTEMS GO: SENTINEL IS READY")
     else:
-        print("\n⚠️  Some tests did not match expected behavior")
+        print("⚠️ SOME TESTS FAILED")
+    print("="*60 + "\n")

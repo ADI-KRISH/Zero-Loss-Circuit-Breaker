@@ -1,53 +1,160 @@
 [
   {
-    "transaction_id": "tx_124449_887",
-    "user_id": "cust_23868",
-    "amount": 199.99,
-    "user_trust": 0.94,
-    "network_status": "SUCCESS_200",
-    "verdict": "APPROVE",
-    "reason": "Both agents agree. Transaction is safe to proceed.",
-    "risk_score": 10,
-    "circuit_breaker": false,
+    "transaction_id": "TX-131121-777",
+    "user_id": "cust_75392",
+    "amount": 4999.0,
+    "user_trust": 0.92,
+    "network_status": "TIMEOUT_504",
+    "verdict": "ESCALATE",
+    "reason": "Circuit Breaker Triggered. Risk Officer invoked VETO due to ambiguous transaction state.",
+    "risk_score": 95,
+    "circuit_breaker": true,
+    "advocate_vote": "APPROVE",
+    "risk_vote": "OBJECTION",
     "logs": [
-      "\ud83e\uddd1\u200d\ud83d\udcbc **Advocate**: High trust user (94%). I vote **APPROVE**.",
-      "\ud83d\udc6e **Risk Officer**: Payment confirmed (200 OK). No risk detected. I vote **APPROVE**.",
-      "\u2696\ufe0f **Judge**: Both agents agree. **APPROVED**."
+      {
+        "type": "SYSTEM",
+        "agent": "Tribunal",
+        "message": "Tribunal activated for Tx TX-131121-777. Amount: $4,999.00",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "SYSTEM",
+        "agent": "Tribunal",
+        "message": "Loading user profile... Trust Score: 92%",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "SYSTEM",
+        "agent": "Tribunal",
+        "message": "Network signal received: TIMEOUT_504",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "THOUGHT",
+        "agent": "Advocate",
+        "message": "User trust is 92%. This is a VIP Customer. They've never disputed a transaction before. We should protect this relationship.",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "SPEAK",
+        "agent": "Advocate",
+        "message": "I vote **APPROVE**. This is a VIP user with 92% trust. We cannot insult them with delays.",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "THOUGHT",
+        "agent": "Risk Officer",
+        "message": "Analyzing Network Status: TIMEOUT_504. Checking internal ledger for transaction state...",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "THOUGHT",
+        "agent": "Risk Officer",
+        "message": "\u26a0\ufe0f DANGER! 504 means the bank never confirmed. Transaction could be: (a) PENDING, (b) SUCCEEDED, or (c) FAILED. If we act now and bank settles later = DOUBLE SPEND.",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "SPEAK",
+        "agent": "Risk Officer",
+        "message": "\ud83d\udea8 **OBJECTION!** I invoke my VETO power. Status 504 = AMBIGUOUS STATE. We cannot approve OR deny. I am triggering the **CIRCUIT BREAKER**.",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "JUDGE",
+        "agent": "Judge",
+        "message": "Weighing arguments from both agents...",
+        "timestamp": "13:11:23.854"
+      },
+      {
+        "type": "JUDGE",
+        "agent": "Judge",
+        "message": "Advocate voted: APPROVE | Risk Officer voted: OBJECTION",
+        "timestamp": "13:11:23.855"
+      },
+      {
+        "type": "JUDGE",
+        "agent": "Judge",
+        "message": "Risk Officer has invoked VETO. This overrides all other votes.",
+        "timestamp": "13:11:23.855"
+      },
+      {
+        "type": "VERDICT",
+        "agent": "Judge",
+        "message": "\ud83d\udd12 **ESCALATE** - Routing to human review. No automated action will be taken on $4,999.00.",
+        "timestamp": "13:11:23.855"
+      }
     ],
-    "timestamp": "2026-02-07T12:44:50.321559"
+    "timestamp": "2026-02-07T13:11:23.855199"
   },
   {
-    "transaction_id": "tx_124458_234",
-    "user_id": "cust_23868",
-    "amount": 199.99,
-    "user_trust": 0.94,
-    "network_status": "FAILED_402",
-    "verdict": "DENY",
-    "reason": "Payment declined by bank. Transaction cannot proceed.",
-    "risk_score": 80,
-    "circuit_breaker": false,
-    "logs": [
-      "\ud83e\uddd1\u200d\ud83d\udcbc **Advocate**: High trust user (94%). I vote **APPROVE**.",
-      "\ud83d\udc6e **Risk Officer**: Payment was declined by the bank. I vote **DENY**.",
-      "\u2696\ufe0f **Judge**: Risk Officer confirms failure. **DENIED**."
-    ],
-    "timestamp": "2026-02-07T12:44:59.654101"
-  },
-  {
-    "transaction_id": "tx_124503_402",
-    "user_id": "cust_23868",
-    "amount": 199.99,
+    "transaction_id": "TX-131841-547",
+    "user_id": "cust_95944",
+    "amount": 4999.0,
     "user_trust": 0.94,
     "network_status": "TIMEOUT_504",
     "verdict": "ESCALATE",
-    "reason": "Circuit Breaker Triggered! High trust user but network state unknown. Human review required.",
+    "reason": "The Risk Officer has issued an OBJECTION, which acts as a circuit breaker, necessitating escalation regardless of the Advocate's approval.",
     "risk_score": 95,
     "circuit_breaker": true,
+    "advocate_vote": "APPROVE",
+    "risk_vote": "OBJECTION",
     "logs": [
-      "\ud83e\uddd1\u200d\ud83d\udcbc **Advocate**: High trust user (94%). I vote **APPROVE**.",
-      "\ud83d\udc6e **Risk Officer**: \u26d4 Network returned `504 TIMEOUT`. Transaction state is **UNKNOWN**. I vote **BLOCK** to prevent double-spend!",
-      "\u2696\ufe0f **Judge**: \ud83d\udd12 **CIRCUIT BREAKER TRIGGERED!** Advocate wants to approve, but Risk detected ambiguity. **ESCALATING** to human review."
+      {
+        "type": "SYSTEM",
+        "agent": "Tribunal",
+        "message": "Tribunal activated for Tx TX-131841-547. Amount: $4,999.00",
+        "timestamp": "13:18:43.814"
+      },
+      {
+        "type": "SYSTEM",
+        "agent": "Tribunal",
+        "message": "Loading user profile... Trust Score: 94%",
+        "timestamp": "13:18:43.814"
+      },
+      {
+        "type": "SYSTEM",
+        "agent": "Tribunal",
+        "message": "Network signal received: TIMEOUT_504",
+        "timestamp": "13:18:43.814"
+      },
+      {
+        "type": "THOUGHT",
+        "agent": "Advocate",
+        "message": "The user is a VIP with a high trust score of 0.94, indicating a strong history of reliable transactions. The transaction amount of $4999.0 is significant but not unusually high for a VIP user. There are no apparent red flags.",
+        "timestamp": "13:18:47.787"
+      },
+      {
+        "type": "SPEAK",
+        "agent": "Advocate",
+        "message": "Given the user's VIP status and high trust score, this transaction should be approved. The user has demonstrated reliability, and there is no reason to suspect fraudulent activity.",
+        "timestamp": "13:18:47.787"
+      },
+      {
+        "type": "THOUGHT",
+        "agent": "Risk Officer",
+        "message": "The status 'TIMEOUT_504' indicates a huge risk due to the ambiguous state of the transaction. There is a possibility of a double-spend or financial loss as the transaction's outcome is uncertain.",
+        "timestamp": "13:18:50.551"
+      },
+      {
+        "type": "SPEAK",
+        "agent": "Risk Officer",
+        "message": "Given the ambiguous nature of a TIMEOUT_504 status, I must object to proceeding with this transaction to prevent potential financial loss or double-spending.",
+        "timestamp": "13:18:50.551"
+      },
+      {
+        "type": "JUDGE",
+        "agent": "Judge",
+        "message": "Weighing the arguments...",
+        "timestamp": "13:18:52.109"
+      },
+      {
+        "type": "VERDICT",
+        "agent": "Judge",
+        "message": "ESCALATE - The Risk Officer has issued an OBJECTION, which acts as a circuit breaker, necessitating escalation regardless of the Advocate's approval.",
+        "timestamp": "13:18:52.110"
+      }
     ],
-    "timestamp": "2026-02-07T12:45:05.274180"
+    "timestamp": "2026-02-07T13:18:52.110622"
   }
 ]
