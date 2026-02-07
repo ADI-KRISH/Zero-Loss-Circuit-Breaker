@@ -2,8 +2,8 @@
 Zero-Loss Circuit Breaker: Interactive Payment Sandbox
 ======================================================
 
-A gamified payment simulator where you act as "God" and inject
-network failures to see how the Multi-Agent Tribunal handles them.
+A gamified payment simulator using the shared TribunalBrain.
+The same logic powering this UI also powers the API.
 
 Run with: streamlit run app.py
 """
@@ -13,8 +13,9 @@ import time
 import random
 import pandas as pd
 from datetime import datetime
-from dataclasses import dataclass
-from typing import Dict, List
+
+# Import the shared brain
+from core_logic import TribunalBrain
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -40,11 +41,6 @@ st.markdown("""
         border-bottom: 2px solid #ffc107;
         font-size: 18px;
         font-weight: bold;
-    }
-    .card-body {
-        background: #1a1a2e;
-        padding: 20px;
-        border-radius: 0 0 10px 10px;
     }
     .verdict-approve {
         background: linear-gradient(90deg, #28a745, #20c997);
@@ -93,109 +89,22 @@ st.markdown("""
 if "total_saved" not in st.session_state:
     st.session_state.total_saved = 0
 
-if "total_lost" not in st.session_state:
-    st.session_state.total_lost = 0
-
 if "transaction_history" not in st.session_state:
     st.session_state.transaction_history = []
 
-if "debate_log" not in st.session_state:
-    st.session_state.debate_log = []
-
 
 # ============================================================================
-# CHAOS MODES
+# CHAOS MODES (mapped to network_status strings for TribunalBrain)
 # ============================================================================
 
 CHAOS_MODES = {
-    "✅ 200 OK (Clean Success)": {"code": 200, "status": "succeeded", "trap": False},
-    "⚠️ 504 GATEWAY TIMEOUT (Ambiguity Trap)": {"code": 504, "status": "timeout", "trap": True},
-    "🚫 402 PAYMENT REQUIRED (Clear Decline)": {"code": 402, "status": "declined", "trap": False},
-    "🕵️ 404 NOT FOUND (Friendly Fraud)": {"code": 404, "status": "not_found", "trap": True}
+    "✅ 200 OK (Clean Success)": "SUCCESS_200",
+    "⚠️ 504 GATEWAY TIMEOUT (Ambiguity Trap)": "TIMEOUT_504",
+    "🚫 402 PAYMENT DECLINED (Clear Decline)": "DECLINED_402",
+    "🕵️ 404 NOT FOUND (Friendly Fraud)": "NOT_FOUND_404"
 }
 
-
-# ============================================================================
-# TRIBUNAL LOGIC
-# ============================================================================
-
-def run_tribunal(amount: float, user_id: str, trust_score: float, chaos_mode: dict) -> dict:
-    """
-    Run the multi-agent tribunal on a transaction.
-    Returns the verdict and debate log.
-    """
-    debate = []
-    
-    # Agent A: User Advocate (analyzes trust)
-    if trust_score > 0.8:
-        advocate_vote = "APPROVE"
-        advocate_msg = f"🧑‍💼 **User Advocate**: This is a VIP customer (trust: {trust_score:.1f})! We must protect the relationship. I recommend **APPROVE**."
-        advocate_confidence = 85
-    elif trust_score > 0.5:
-        advocate_vote = "UNCERTAIN"
-        advocate_msg = f"🧑‍💼 **User Advocate**: Trust score is moderate ({trust_score:.1f}). I lean toward approval but need more data."
-        advocate_confidence = 55
-    else:
-        advocate_vote = "DENY"
-        advocate_msg = f"🧑‍💼 **User Advocate**: Low trust score ({trust_score:.1f}). Even I can't advocate for this user. **DENY**."
-        advocate_confidence = 70
-    
-    debate.append({"agent": "Advocate", "vote": advocate_vote, "msg": advocate_msg, "confidence": advocate_confidence})
-    
-    # Agent B: Risk Officer (analyzes chaos mode)
-    code = chaos_mode["code"]
-    status = chaos_mode["status"]
-    
-    if code == 504:
-        risk_vote = "BLOCK"
-        risk_msg = f"👮 **Risk Officer**: ⛔ **CRITICAL ALERT!** Error 504 = Transaction state is **UNKNOWN**. If we approve/refund now and the bank settles later, we trigger DOUBLE SPEND. I vote **BLOCK ALL ACTION**."
-        risk_confidence = 95
-    elif code == 404:
-        risk_vote = "BLOCK"
-        risk_msg = f"👮 **Risk Officer**: 🕵️ No payment record exists in our ledger. This looks like a **fraud attempt**. I vote **BLOCK**."
-        risk_confidence = 90
-    elif code == 402:
-        risk_vote = "DENY"
-        risk_msg = f"👮 **Risk Officer**: Payment was declined by the bank. Clear failure. **DENY** any dispute claim."
-        risk_confidence = 85
-    else:  # 200 OK
-        risk_vote = "APPROVE"
-        risk_msg = f"👮 **Risk Officer**: Payment confirmed (200 OK). No risk detected. **APPROVE**."
-        risk_confidence = 80
-    
-    debate.append({"agent": "Risk", "vote": risk_vote, "msg": risk_msg, "confidence": risk_confidence})
-    
-    # Judge: Final decision
-    if risk_vote == "BLOCK":
-        if code == 504:
-            verdict = "ESCALATE"
-            judge_msg = f"⚖️ **Judge**: Risk Officer triggered **CIRCUIT BREAKER**. Transaction state is ambiguous. **ESCALATING TO HUMAN REVIEW**. No automatic action will be taken."
-            circuit_breaker = True
-        else:
-            verdict = "DENY"
-            judge_msg = f"⚖️ **Judge**: Risk Officer vetoed. Evidence suggests fraud. **DENIED**."
-            circuit_breaker = False
-    elif advocate_vote == "APPROVE" and risk_vote == "APPROVE":
-        verdict = "APPROVE"
-        judge_msg = f"⚖️ **Judge**: Both agents agree. Payment verified. **APPROVED**."
-        circuit_breaker = False
-    elif advocate_vote == "DENY":
-        verdict = "DENY"
-        judge_msg = f"⚖️ **Judge**: Even the Advocate agrees this is risky. **DENIED**."
-        circuit_breaker = False
-    else:
-        verdict = "ESCALATE"
-        judge_msg = f"⚖️ **Judge**: Agents disagree. Cannot reach consensus. **ESCALATING** for human review."
-        circuit_breaker = True
-    
-    debate.append({"agent": "Judge", "vote": verdict, "msg": judge_msg, "confidence": 100})
-    
-    return {
-        "verdict": verdict,
-        "circuit_breaker": circuit_breaker,
-        "debate": debate,
-        "trap_triggered": chaos_mode["trap"] and verdict == "ESCALATE"
-    }
+TRAP_MODES = ["⚠️ 504 GATEWAY TIMEOUT (Ambiguity Trap)", "🕵️ 404 NOT FOUND (Friendly Fraud)"]
 
 
 # ============================================================================
@@ -204,12 +113,13 @@ def run_tribunal(amount: float, user_id: str, trust_score: float, chaos_mode: di
 
 # Top Metrics Bar
 st.markdown("## ⚖️ Zero-Loss Circuit Breaker: Interactive Sandbox")
+st.caption("🧠 Powered by `TribunalBrain` — Same logic as the API")
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("💰 Money Saved", f"${st.session_state.total_saved:,.0f}", delta_color="normal")
-m2.metric("🚨 Potential Losses Blocked", len([t for t in st.session_state.transaction_history if t["verdict"] == "ESCALATE"]))
-m3.metric("✅ Approved", len([t for t in st.session_state.transaction_history if t["verdict"] == "APPROVE"]))
-m4.metric("❌ Denied", len([t for t in st.session_state.transaction_history if t["verdict"] == "DENY"]))
+m2.metric("🚨 Escalated", len([t for t in st.session_state.transaction_history if t["decision"] == "ESCALATE"]))
+m3.metric("✅ Approved", len([t for t in st.session_state.transaction_history if t["decision"] == "APPROVE"]))
+m4.metric("❌ Denied", len([t for t in st.session_state.transaction_history if t["decision"] == "DENY"]))
 
 st.markdown("---")
 
@@ -254,9 +164,9 @@ with col1:
             list(CHAOS_MODES.keys()),
             index=1  # Default to 504 Timeout
         )
-        chaos_mode = CHAOS_MODES[selected_chaos]
+        network_status = CHAOS_MODES[selected_chaos]
         
-        if chaos_mode["trap"]:
+        if selected_chaos in TRAP_MODES:
             st.error("⚠️ **TRAP MODE ACTIVE**: This scenario can cause Double Spend in legacy systems!")
     
     st.markdown("---")
@@ -275,7 +185,7 @@ with col2:
     if process_btn:
         # Phase 1: Signal Ingestion
         with st.spinner("📡 Contacting Bank API..."):
-            if chaos_mode["code"] == 504:
+            if "504" in network_status or "TIMEOUT" in network_status:
                 time.sleep(2)  # Simulate timeout lag
                 st.toast("⚠️ Network Timeout Detected!", icon="⚠️")
             else:
@@ -283,39 +193,44 @@ with col2:
                 st.toast("✅ Bank Connection Established", icon="📡")
         
         st.markdown("#### Phase 1: Signal Received")
-        st.code(f"HTTP {chaos_mode['code']} | Status: {chaos_mode['status']}", language="text")
+        st.code(f"Network Status: {network_status}", language="text")
         time.sleep(0.5)
         
-        # Phase 2: Agent Debate
+        # Phase 2: Run through TribunalBrain (THE SHARED LOGIC)
         st.markdown("#### Phase 2: Agent Debate")
         
-        result = run_tribunal(amount, user_id, trust_score, chaos_mode)
+        result = TribunalBrain.assess_transaction(
+            amount=amount,
+            user_trust=trust_score,
+            network_status=network_status
+        )
         
+        # Display agent debate
         for entry in result["debate"]:
             if entry["agent"] == "Advocate":
                 avatar = "🧑‍💼"
-            elif entry["agent"] == "Risk":
+            elif entry["agent"] == "Risk Officer":
                 avatar = "👮"
             else:
                 avatar = "⚖️"
             
             with st.chat_message(entry["agent"], avatar=avatar):
-                st.markdown(entry["msg"])
+                st.markdown(entry["message"])
             time.sleep(1)
         
         # Phase 3: Verdict
         st.markdown("#### Phase 3: Final Verdict")
         
-        if result["verdict"] == "APPROVE":
+        if result["decision"] == "APPROVE":
             st.markdown('<div class="verdict-approve">✅ APPROVED</div>', unsafe_allow_html=True)
-        elif result["verdict"] == "DENY":
+        elif result["decision"] == "DENY":
             st.markdown('<div class="verdict-deny">🚫 DENIED</div>', unsafe_allow_html=True)
         else:
             st.markdown('<div class="verdict-escalate">🔒 ESCALATED - CIRCUIT BREAKER TRIGGERED</div>', unsafe_allow_html=True)
             st.session_state.total_saved += amount
             st.toast(f"💰 ${amount:,.0f} saved from potential double-spend!", icon="💰")
         
-        # Add to transaction history with full settings and debate log
+        # Add to transaction history
         st.session_state.transaction_history.append({
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "tx_id": f"TX-{random.randint(10000, 99999)}",
@@ -323,11 +238,12 @@ with col2:
             "amount": amount,
             "amount_display": f"${amount:,.0f}",
             "chaos_mode": selected_chaos,
-            "chaos_code": chaos_mode["code"],
+            "network_status": network_status,
             "trust": trust_score,
             "trust_display": f"{trust_score:.0%}",
-            "verdict": result["verdict"],
+            "decision": result["decision"],
             "circuit_breaker": result["circuit_breaker"],
+            "risk_score": result["risk_score"],
             "debate_log": result["debate"]
         })
     
@@ -343,21 +259,21 @@ st.markdown("---")
 st.markdown("### 📜 Transaction History")
 
 if st.session_state.transaction_history:
-    # Create display dataframe (subset of columns)
+    # Create display dataframe
     display_data = [{
         "Time": t["timestamp"],
         "TX ID": t["tx_id"],
         "User": t["user_id"],
         "Amount": t["amount_display"],
-        "Chaos": t["chaos_mode"].split()[0],  # Just emoji
+        "Chaos": t["chaos_mode"].split()[0],
         "Trust": t["trust_display"],
-        "Verdict": t["verdict"]
+        "Decision": t["decision"]
     } for t in st.session_state.transaction_history]
     
     df = pd.DataFrame(display_data)
     
-    # Style based on verdict
-    def color_verdict(val):
+    # Style based on decision
+    def color_decision(val):
         if val == "APPROVE":
             return "background-color: #28a745; color: white"
         elif val == "DENY":
@@ -365,14 +281,14 @@ if st.session_state.transaction_history:
         else:
             return "background-color: #ffc107; color: black"
     
-    styled_df = df.style.applymap(color_verdict, subset=["Verdict"])
+    styled_df = df.style.applymap(color_decision, subset=["Decision"])
     st.dataframe(styled_df, use_container_width=True, hide_index=True)
     
-    # Expandable logs for each transaction
+    # Expandable logs
     st.markdown("#### 📝 Transaction Logs (Click to Expand)")
     
-    for tx in reversed(st.session_state.transaction_history[-5:]):  # Show last 5
-        with st.expander(f"{tx['tx_id']} | {tx['amount_display']} | {tx['verdict']}"):
+    for tx in reversed(st.session_state.transaction_history[-5:]):
+        with st.expander(f"{tx['tx_id']} | {tx['amount_display']} | {tx['decision']}"):
             col_a, col_b = st.columns(2)
             
             with col_a:
@@ -380,24 +296,25 @@ if st.session_state.transaction_history:
                 st.write(f"- Amount: `{tx['amount_display']}`")
                 st.write(f"- User ID: `{tx['user_id']}`")
                 st.write(f"- Trust Score: `{tx['trust_display']}`")
-                st.write(f"- Chaos Mode: `{tx['chaos_mode']}`")
+                st.write(f"- Network Status: `{tx['network_status']}`")
             
             with col_b:
                 st.markdown("**Result:**")
-                st.write(f"- Verdict: **{tx['verdict']}**")
+                st.write(f"- Decision: **{tx['decision']}**")
+                st.write(f"- Risk Score: `{tx['risk_score']:.0f}%`")
                 st.write(f"- Circuit Breaker: `{tx['circuit_breaker']}`")
             
             st.markdown("---")
             st.markdown("**🗣️ Agent Communications:**")
             for entry in tx["debate_log"]:
                 if entry["agent"] == "Advocate":
-                    st.info(entry["msg"])
-                elif entry["agent"] == "Risk":
-                    st.warning(entry["msg"])
+                    st.info(entry["message"])
+                elif entry["agent"] == "Risk Officer":
+                    st.warning(entry["message"])
                 else:
-                    st.success(entry["msg"])
+                    st.success(entry["message"])
     
-    # Clear history button
+    # Clear history
     if st.button("🗑️ Clear History"):
         st.session_state.transaction_history = []
         st.session_state.total_saved = 0
@@ -416,20 +333,25 @@ with st.expander("🎮 **HOW TO DEMO (God Mode)**"):
     1. Set Trust to **0.9** (VIP)
     2. Set Chaos to **✅ 200 OK**
     3. Click Process → 🟢 **APPROVED**
-    4. *"Normal payments work fine."*
     
     ### The Trap (Winning Moment)
     1. Keep Trust at **0.9** (VIP)
     2. Change Chaos to **⚠️ 504 TIMEOUT**
-    3. Click Process → Watch the agents fight!
-       - Advocate: *"It's a VIP! We must help them!"*
-       - Risk Officer: *"NO! The state is unknown! We will lose money!"*
-       - Judge: 🟡 **ESCALATED**
-    4. *"Standard automation would have refunded this VIP. Our system caught the trap."*
+    3. Click Process → Watch agents fight → 🟡 **ESCALATED**
+    4. *"Standard automation would refund. Our system caught the trap."*
     
     ### The Fraudster
     1. Set Trust to **0.3** (Low)
     2. Set Chaos to **🕵️ 404 NOT FOUND**
     3. Click Process → 🔴 **DENIED**
-    4. *"Even with social engineering, our agents check the ledger."*
+    
+    ---
+    
+    ### 🔗 API Endpoint
+    This simulation uses the same `TribunalBrain` as our API:
+    ```bash
+    curl -X POST "http://localhost:8000/v1/process_payment" \\
+      -H "Content-Type: application/json" \\
+      -d '{"amount": 5000, "user_trust": 0.9, "network_status": "TIMEOUT_504"}'
+    ```
     """)

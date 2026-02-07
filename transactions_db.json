@@ -1,0 +1,53 @@
+[
+  {
+    "transaction_id": "tx_124449_887",
+    "user_id": "cust_23868",
+    "amount": 199.99,
+    "user_trust": 0.94,
+    "network_status": "SUCCESS_200",
+    "verdict": "APPROVE",
+    "reason": "Both agents agree. Transaction is safe to proceed.",
+    "risk_score": 10,
+    "circuit_breaker": false,
+    "logs": [
+      "\ud83e\uddd1\u200d\ud83d\udcbc **Advocate**: High trust user (94%). I vote **APPROVE**.",
+      "\ud83d\udc6e **Risk Officer**: Payment confirmed (200 OK). No risk detected. I vote **APPROVE**.",
+      "\u2696\ufe0f **Judge**: Both agents agree. **APPROVED**."
+    ],
+    "timestamp": "2026-02-07T12:44:50.321559"
+  },
+  {
+    "transaction_id": "tx_124458_234",
+    "user_id": "cust_23868",
+    "amount": 199.99,
+    "user_trust": 0.94,
+    "network_status": "FAILED_402",
+    "verdict": "DENY",
+    "reason": "Payment declined by bank. Transaction cannot proceed.",
+    "risk_score": 80,
+    "circuit_breaker": false,
+    "logs": [
+      "\ud83e\uddd1\u200d\ud83d\udcbc **Advocate**: High trust user (94%). I vote **APPROVE**.",
+      "\ud83d\udc6e **Risk Officer**: Payment was declined by the bank. I vote **DENY**.",
+      "\u2696\ufe0f **Judge**: Risk Officer confirms failure. **DENIED**."
+    ],
+    "timestamp": "2026-02-07T12:44:59.654101"
+  },
+  {
+    "transaction_id": "tx_124503_402",
+    "user_id": "cust_23868",
+    "amount": 199.99,
+    "user_trust": 0.94,
+    "network_status": "TIMEOUT_504",
+    "verdict": "ESCALATE",
+    "reason": "Circuit Breaker Triggered! High trust user but network state unknown. Human review required.",
+    "risk_score": 95,
+    "circuit_breaker": true,
+    "logs": [
+      "\ud83e\uddd1\u200d\ud83d\udcbc **Advocate**: High trust user (94%). I vote **APPROVE**.",
+      "\ud83d\udc6e **Risk Officer**: \u26d4 Network returned `504 TIMEOUT`. Transaction state is **UNKNOWN**. I vote **BLOCK** to prevent double-spend!",
+      "\u2696\ufe0f **Judge**: \ud83d\udd12 **CIRCUIT BREAKER TRIGGERED!** Advocate wants to approve, but Risk detected ambiguity. **ESCALATING** to human review."
+    ],
+    "timestamp": "2026-02-07T12:45:05.274180"
+  }
+]

@@ -1,0 +1,44 @@
+[
+  {
+    "timestamp": "2026-02-07T12:35:59.690285",
+    "request": {
+      "amount": 5000.0,
+      "user_trust": 0.9,
+      "network_status": "TIMEOUT_504",
+      "user_id": null,
+      "transaction_id": null
+    },
+    "result": {
+      "decision": "ESCALATE",
+      "logs": [
+        "\ud83e\uddd1\u200d\ud83d\udcbc **User Advocate**: VIP customer detected (trust: 90%)! We must protect this relationship. I vote **APPROVE**.",
+        "\ud83d\udc6e **Risk Officer**: \u26d4 **VETO!** Status `TIMEOUT_504` = UNKNOWN transaction state. If we act now and bank settles later, we trigger **DOUBLE SPEND**. I vote **BLOCK ALL ACTION**.",
+        "\u2696\ufe0f **Judge**: Risk Officer triggered **CIRCUIT BREAKER**. Transaction state is ambiguous. **ESCALATING TO HUMAN REVIEW**. No automatic action."
+      ],
+      "risk_score": 95,
+      "circuit_breaker": true,
+      "debate": [
+        {
+          "agent": "Advocate",
+          "vote": "APPROVE",
+          "confidence": 90.0,
+          "message": "\ud83e\uddd1\u200d\ud83d\udcbc **User Advocate**: VIP customer detected (trust: 90%)! We must protect this relationship. I vote **APPROVE**."
+        },
+        {
+          "agent": "Risk Officer",
+          "vote": "BLOCK",
+          "confidence": 95,
+          "message": "\ud83d\udc6e **Risk Officer**: \u26d4 **VETO!** Status `TIMEOUT_504` = UNKNOWN transaction state. If we act now and bank settles later, we trigger **DOUBLE SPEND**. I vote **BLOCK ALL ACTION**."
+        },
+        {
+          "agent": "Judge",
+          "vote": "ESCALATE",
+          "confidence": 100,
+          "message": "\u2696\ufe0f **Judge**: Risk Officer triggered **CIRCUIT BREAKER**. Transaction state is ambiguous. **ESCALATING TO HUMAN REVIEW**. No automatic action."
+        }
+      ],
+      "timestamp": "2026-02-07T12:35:59.690236",
+      "transaction_id": null
+    }
+  }
+]

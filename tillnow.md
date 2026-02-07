@@ -257,3 +257,113 @@ Complete rewrite of `app.py` as a gamified "God Mode" simulator:
 ```bash
 streamlit run app.py
 ```
+
+---
+
+## Phase 9: Modular Architecture Refactor (2026-02-07)
+
+### What Was Done
+Refactored into 3-file modular architecture:
+
+### Files
+| File | Purpose |
+|------|---------|
+| `core_logic.py` | TribunalBrain class - shared pure Python logic |
+| `api.py` | FastAPI middleware with `/v1/process_payment` endpoint |
+| `app.py` | Streamlit UI importing TribunalBrain |
+
+### Architecture
+```
+┌─────────────────┐     ┌─────────────────┐
+│   app.py        │────▶│  core_logic.py  │
+│  (Streamlit)    │     │  TribunalBrain  │
+└─────────────────┘     └────────▲────────┘
+                                 │
+┌─────────────────┐              │
+│    api.py       │──────────────┘
+│   (FastAPI)     │
+└─────────────────┘
+```
+
+### API Endpoint
+```bash
+POST /v1/process_payment
+{
+  "amount": 5000,
+  "user_trust": 0.9,
+  "network_status": "TIMEOUT_504"
+}
+```
+
+### The Pitch
+> "The code running the Simulation is the exact same code
+> powering the Live API. One brain, two interfaces."
+
+### Run Commands
+```bash
+# Terminal 1: API
+uvicorn api:app --reload
+
+# Terminal 2: Simulation
+streamlit run app.py
+```
+
+---
+
+## Phase 10: Complete 4-Component Suite (2026-02-07)
+
+### What Was Built
+Expanded from 3-file to full 4-component application suite:
+
+### Components
+| File | Purpose | Port |
+|------|---------|------|
+| `core_logic.py` | TribunalBrain.analyze() - shared decision logic | - |
+| `api.py` | FastAPI middleware with POST /webhook | 8000 |
+| `dashboard.py` | Ops Console (2 tabs: Simulation + Live Desk) | 8501 |
+| `merchant_store.py` | Mock SneakerVault e-commerce store | 8502 |
+
+### Architecture
+```
+┌─────────────────────┐     ┌─────────────────────┐
+│   dashboard.py      │────▶│    core_logic.py    │
+│   (Ops Console)     │     │   TribunalBrain     │
+└─────────────────────┘     └──────────▲──────────┘
+                                       │
+┌─────────────────────┐     ┌──────────┴──────────┐
+│  merchant_store.py  │────▶│      api.py         │
+│   (Mock Store)      │     │   (FastAPI)         │
+└─────────────────────┘     └─────────────────────┘
+```
+
+### Dashboard Tabs
+1. **Simulation Gym**: Direct brain testing (God Mode)
+2. **Live Escalation Desk**: Monitor API traffic, highlighted escalations
+
+### Merchant Store Features
+- Mock "SneakerVault" UI
+- Developer Tools: Simulate bank errors (200/504/402)
+- Sends POST /webhook to API
+- Displays verdict to customer
+
+### Persistence
+- All API transactions saved to `transactions_db.json`
+- Dashboard reads from same file for live monitoring
+
+### Run Commands
+```bash
+# Terminal 1: API
+uvicorn api:app --reload
+
+# Terminal 2: Dashboard
+streamlit run dashboard.py --server.port 8501
+
+# Terminal 3: Store
+streamlit run merchant_store.py --server.port 8502
+```
+
+### Demo Flow
+1. Open Store (8502) → Buy sneaker with SUCCESS_200 → ✅ Order Confirmed
+2. Same store → Developer Tools → TIMEOUT_504 → ⚠️ Payment Under Review
+3. Open Dashboard (8501) → Tab 2 → See escalated transaction
+4. Pitch: "Same brain, two interfaces, zero losses"
