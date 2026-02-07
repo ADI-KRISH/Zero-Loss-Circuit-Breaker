@@ -209,3 +209,51 @@ All three scenarios working:
 1. **Happy Path**: Consensus REFUND (80% confidence)
 2. **Adversarial**: Consensus DENY (77.5% confidence)  
 3. **Circuit Breaker**: Strategic Refusal ESCALATE (50% consensus → triggered)
+
+---
+
+## Phase 8: Interactive Payment Sandbox (2026-02-07)
+
+### What Was Built
+Complete rewrite of `app.py` as a gamified "God Mode" simulator:
+
+### Features
+- **Split-Screen Layout**: Payment Terminal (left) + Tribunal War Room (right)
+- **Chaos Injector**: Inject 4 failure modes (200 OK, 504 Timeout, 402 Decline, 404 Not Found)
+- **Trust Score Slider**: 0.0 (Fraudster) to 1.0 (VIP)
+- **Live Agent Debate**: Chat bubbles showing Advocate vs Risk Officer fight
+- **Financial Ticker**: Real-time money saved counter
+- **Transaction History**: Table with expandable logs per transaction
+- **Full Logging**: Each transaction stores settings + agent communications
+
+### Chaos Modes
+| Code | Name | Trap |
+|------|------|------|
+| 200 | Clean Success | No |
+| 504 | Gateway Timeout | Yes (Double Spend) |
+| 402 | Payment Declined | No |
+| 404 | Not Found | Yes (Friendly Fraud) |
+
+### Transaction Log Structure
+```python
+{
+    "timestamp": "HH:MM:SS",
+    "tx_id": "TX-XXXXX",
+    "user_id": "cust_XXXX",
+    "amount": 5000,
+    "chaos_mode": "504 GATEWAY TIMEOUT",
+    "trust": 0.85,
+    "verdict": "ESCALATE",
+    "circuit_breaker": True,
+    "debate_log": [
+        {"agent": "Advocate", "vote": "APPROVE", "msg": "...", "confidence": 85},
+        {"agent": "Risk", "vote": "BLOCK", "msg": "...", "confidence": 95},
+        {"agent": "Judge", "vote": "ESCALATE", "msg": "...", "confidence": 100}
+    ]
+}
+```
+
+### Run Command
+```bash
+streamlit run app.py
+```
