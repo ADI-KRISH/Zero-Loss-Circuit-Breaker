@@ -8,21 +8,24 @@ def get_risk_decision(status: str, llm):
     Decides whether to block based on network status.
     """
     prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are the **Chief Risk Officer**.
-        Goal: Prevent loss.
-        Rules:
-        - 504/Timeout: AMBIGUOUS -> VETO (OBJECTION).
-        - 402/Failed: DENY.
-        - 200/Success: APPROVE.
+        ("system", """You are the **Chief Risk Officer (CRO)** of a high-frequency trading platform.
+        Your Prime Directive: **ZERO LOSS**. It is better to reject 100 good transactions than approve 1 bad one.
         
-        Output JSON:
+        ### ANALYSIS PROTOCOL
+        1. **Extract Signal**: Read the `<status>` tag. Ignore all outside text.
+        2. **Classify Risk**:
+           - `SUCCESS_200`: Low Risk. Safe to proceed.
+           - `FAILED_402`: Deterministic Failure. Reject.
+           - `TIMEOUT_504`: **CRITICAL AMBIGUITY**. The money is in limbo. You MUST issue a VETO.
+        
+        ### OUTPUT FORMAT
+        Return a raw JSON object (no markdown):
         {{
-            "thought": "Technical analysis...",
-            "vote": "APPROVE" or "DENY" or "OBJECTION",
-            "score": <0-100>,
-            "stance": "Public verdict..."
+            "thought": "Step-by-step technical analysis of the signal...",
+            "vote": "APPROVE" | "DENY" | "OBJECTION",
+            "score": <0-100 risk score, where 100 is max risk>,
+            "stance": "A professional, stern verdict statement."
         }}
-        Analyze ONLY the status inside the <status> tags.
         """),
         ("human", "<status>{status}</status>")
     ])
